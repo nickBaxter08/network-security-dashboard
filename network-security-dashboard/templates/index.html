@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Perimeter — Network Security Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-name">Perimeter</span>
+    </div>
+    <div class="mode-badge mode-{{ mode }}" id="mode-badge">{{ mode }} mode</div>
+  </header>
+
+  <main class="layout">
+
+    <section class="scan-panel">
+      <h1>Scan your network</h1>
+      <p class="subtext">
+        {% if mode == 'local' %}
+          Enter a host on your own network to scan. Only scan devices you own or have explicit permission to test.
+        {% else %}
+          Running on sample data — this public demo never scans a real network. Run locally to scan your own LAN.
+        {% endif %}
+      </p>
+
+      <form id="scan-form">
+        {% if mode == 'local' %}
+        <input type="text" id="target-input" placeholder="e.g. 192.168.1.14" required>
+        {% endif %}
+        <button type="submit" id="scan-btn">Run scan</button>
+      </form>
+
+      <div class="gauge-wrap">
+        <svg viewBox="0 0 200 120" class="gauge" id="gauge">
+          <path d="M 20 100 A 80 80 0 0 1 180 100" class="gauge-track"/>
+          <path d="M 20 100 A 80 80 0 0 1 180 100" class="gauge-fill" id="gauge-fill"/>
+        </svg>
+        <div class="gauge-label">
+          <span class="gauge-score" id="gauge-score">—</span>
+          <span class="gauge-caption">overall risk</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="results-panel">
+      <div class="results-header">
+        <h2>Findings</h2>
+        <span class="scan-meta" id="scan-meta">No scan run yet</span>
+      </div>
+      <div id="results-list" class="results-list">
+        <p class="empty-state">Run a scan to see devices, services, and flagged issues here.</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>
