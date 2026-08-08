@@ -125,3 +125,6 @@ static/js/dashboard.js                  Frontend scan + render logic
 - Export findings as a PDF report
 - Auth so a hosted version can save per-user scan history
 - Binary-protocol verification for RDP/SMB
+
+## DISCLAIMER
+Anthropic's Claude put all of this code together as you see it, none of this was written by hand
