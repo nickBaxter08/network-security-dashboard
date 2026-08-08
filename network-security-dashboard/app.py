@@ -1,11 +1,13 @@
 from flask import Flask, jsonify, render_template, request
 
 from config import config
+import db
 from scanner.demo_data import get_demo_scan_result
 from security.cve_lookup import lookup_cves
 from security.rules import check_service, score_device, score_label
 
 app = Flask(__name__)
+db.init_db()
 
 
 def enrich_scan_result(scan_result):
@@ -51,7 +53,22 @@ def api_scan():
         result = get_demo_scan_result()
 
     result = enrich_scan_result(result)
+    db.save_scan(result)
     return jsonify(result)
+
+
+@app.route("/api/history")
+def api_history():
+    limit = request.args.get("limit", default=20, type=int)
+    return jsonify(db.get_history(limit=limit))
+
+
+@app.route("/api/history/<int:scan_id>")
+def api_history_detail(scan_id):
+    detail = db.get_scan_detail(scan_id)
+    if detail is None:
+        return jsonify({"error": "scan not found"}), 404
+    return jsonify(detail)
 
 
 @app.route("/api/mode")

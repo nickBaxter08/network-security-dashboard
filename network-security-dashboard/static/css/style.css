@@ -183,3 +183,35 @@ body {
 .finding.sev-high { border-color: var(--high); color: var(--high); }
 .finding.sev-medium { border-color: var(--medium); color: var(--medium); }
 .finding.sev-low, .finding.sev-unknown { border-color: var(--text-muted); color: var(--text-muted); }
+
+.history-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 24px;
+  margin-top: 24px;
+}
+.history-panel h2 { font-family: var(--font-display); font-size: 18px; margin: 0 0 16px; }
+
+.history-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 90px 90px;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+}
+.history-row:first-child { border-top: none; }
+.history-time { color: var(--text-muted); font-family: var(--font-mono); font-size: 12px; }
+.history-target { font-family: var(--font-mono); }
+.history-mode {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  justify-self: start;
+}
+@media (max-width: 640px) {
+  .history-row { grid-template-columns: 1fr 1fr; }
+  .history-mode { display: none; }
+}

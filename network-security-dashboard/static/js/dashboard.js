@@ -5,6 +5,8 @@ const scanMeta = document.getElementById('scan-meta');
 const gaugeFill = document.getElementById('gauge-fill');
 const gaugeScore = document.getElementById('gauge-score');
 
+const historyList = document.getElementById('history-list');
+
 const GAUGE_CIRCUMFERENCE = 251;
 
 const RISK_COLOR = {
@@ -14,6 +16,43 @@ const RISK_COLOR = {
   high: '#F4795B',
   critical: '#E5484D',
 };
+
+function riskLabel(score) {
+  if (score >= 70) return 'critical';
+  if (score >= 40) return 'high';
+  if (score >= 15) return 'medium';
+  if (score > 0) return 'low';
+  return 'clean';
+}
+
+async function loadHistory() {
+  try {
+    const res = await fetch('/api/history');
+    const rows = await res.json();
+    if (!rows.length) {
+      historyList.innerHTML = '<p class="empty-state">No scans recorded yet.</p>';
+      return;
+    }
+    historyList.innerHTML = rows.map(renderHistoryRow).join('');
+  } catch {
+    historyList.innerHTML = '<p class="empty-state">Couldn\'t load history.</p>';
+  }
+}
+
+function renderHistoryRow(row) {
+  const label = riskLabel(row.max_risk_score);
+  const time = new Date(row.scanned_at * 1000).toLocaleString();
+  return `
+    <div class="history-row">
+      <span class="history-time">${time}</span>
+      <span class="history-target">${row.target}</span>
+      <span class="history-mode">${row.mode}</span>
+      <span class="risk-pill risk-${label}">${row.max_risk_score}</span>
+    </div>
+  `;
+}
+
+loadHistory();
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -34,6 +73,7 @@ form.addEventListener('submit', async (e) => {
       throw new Error(data.error || 'Scan failed');
     }
     renderResults(data);
+    loadHistory();
   } catch (err) {
     resultsList.innerHTML = `<p class="empty-state">${err.message}</p>`;
   } finally {
