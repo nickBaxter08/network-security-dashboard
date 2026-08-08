@@ -12,21 +12,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 from config import config
-
-
-def _grab_banner(ip, port, timeout):
-    """Best-effort banner grab. Returns a short string or None."""
-    try:
-        with socket.create_connection((ip, port), timeout=timeout) as sock:
-            sock.settimeout(timeout)
-            try:
-                banner = sock.recv(128)
-                return banner.decode(errors="ignore").strip() or None
-            except socket.timeout:
-                return None
-    except (socket.timeout, ConnectionRefusedError, OSError):
-        return None
-
+from scanner.protocol_check import verify_port
 
 PORT_NAMES = {
     21: "ftp", 22: "ssh", 23: "telnet", 25: "smtp", 80: "http",
@@ -36,18 +22,26 @@ PORT_NAMES = {
 
 
 def _scan_port(target_ip, port, timeout):
-    """Checks a single port; returns a service dict or None if closed."""
+    """
+    Checks a single port: first confirms the TCP handshake succeeds, then
+    tries to verify the actual protocol rather than trusting the port
+    number alone (a handshake succeeding isn't proof of what's behind it —
+    see scanner/protocol_check.py for why this matters).
+    """
     try:
         with socket.create_connection((target_ip, port), timeout=timeout):
-            banner = _grab_banner(target_ip, port, timeout)
-            return {
-                "port": port,
-                "name": PORT_NAMES.get(port, "unknown"),
-                "product": banner,
-                "version": None,  # left for the user to confirm manually
-            }
+            pass
     except (socket.timeout, ConnectionRefusedError, OSError):
-        return None
+        return None  # port is closed/filtered — not included at all
+
+    product, verified = verify_port(target_ip, port, timeout)
+    return {
+        "port": port,
+        "name": PORT_NAMES.get(port, "unknown"),
+        "product": product,
+        "version": None,  # left for the user to confirm manually
+        "verified": verified,
+    }
 
 
 def scan_host(target_ip, ports=None, timeout=None):

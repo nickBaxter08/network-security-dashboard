@@ -26,13 +26,19 @@ def check_service(service):
     """Returns a list of rule-based findings for a single service."""
     findings = []
     name = (service.get("name") or "").lower()
+    verified = service.get("verified", False)
     if name in INSECURE_SERVICES:
         severity, reason = INSECURE_SERVICES[name]
+        if not verified:
+            reason += (" (protocol not independently verified on this scan — "
+                       "could also be a false positive from a proxy/middlebox; "
+                       "cross-check with another tool before acting on this.)")
         findings.append({
             "type": "config",
             "severity": severity,
             "message": reason,
             "port": service.get("port"),
+            "verified": verified,
         })
     return findings
 
@@ -53,7 +59,10 @@ def score_device(services, cve_findings_by_service, config_findings_by_service):
             sev = (cve.get("severity") or "UNKNOWN").lower()
             risk_remaining *= (1 - SEVERITY_IMPACT.get(sev, 0.1))
         for finding in config_findings_by_service.get(id(service), []):
-            risk_remaining *= (1 - SEVERITY_IMPACT.get(finding["severity"], 0.1))
+            impact = SEVERITY_IMPACT.get(finding["severity"], 0.1)
+            if not finding.get("verified", True):
+                impact *= 0.5  # lower confidence — reduce contribution, don't ignore
+            risk_remaining *= (1 - impact)
 
     return round(100 * (1 - risk_remaining))
 

@@ -130,11 +130,15 @@ function renderService(service) {
     .map(f => `<div class="finding sev-${f.severity}">${f.message}</div>`)
     .join('');
 
+  const confidenceTag = service.verified
+    ? '<span class="confidence-tag confidence-verified">verified</span>'
+    : '<span class="confidence-tag confidence-unverified">unconfirmed</span>';
+
   return `
     <div class="service-row">
       <span class="service-port">:${service.port} ${service.name}</span>
       <div class="service-body">
-        <div>${service.product || 'unknown service'}${service.version ? ' ' + service.version : ''}</div>
+        <div>${service.product || 'unknown service'}${service.version ? ' ' + service.version : ''} ${confidenceTag}</div>
         ${findingsHtml}
       </div>
     </div>

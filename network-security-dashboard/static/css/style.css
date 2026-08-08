@@ -184,6 +184,19 @@ body {
 .finding.sev-medium { border-color: var(--medium); color: var(--medium); }
 .finding.sev-low, .finding.sev-unknown { border-color: var(--text-muted); color: var(--text-muted); }
 
+.confidence-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.confidence-verified { color: var(--ok); border: 1px solid var(--ok); }
+.confidence-unverified { color: var(--medium); border: 1px solid var(--medium); }
+
 .history-panel {
   background: var(--surface);
   border: 1px solid var(--border);
