@@ -100,13 +100,16 @@ function renderResults(data) {
 
 function renderDevice(device) {
   const services = (device.services || []).map(renderService).join('');
+  const emptyMessage = device.unreachable_note
+    ? `<p class="empty-state">${device.unreachable_note}</p>`
+    : '<p class="empty-state">No open services detected.</p>';
   return `
     <div class="device-card">
       <div class="device-head">
         <span class="device-name">${device.ip}<span class="hostname">${device.hostname || ''}</span></span>
         <span class="risk-pill risk-${device.risk_label}">${device.risk_label} · ${device.risk_score}</span>
       </div>
-      ${services || '<p class="empty-state">No open services detected.</p>'}
+      ${services || emptyMessage}
     </div>
   `;
 }

@@ -9,6 +9,7 @@ the footprint small and intentional.
 
 import socket
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 from config import config
 
@@ -34,27 +35,37 @@ PORT_NAMES = {
 }
 
 
+def _scan_port(target_ip, port, timeout):
+    """Checks a single port; returns a service dict or None if closed."""
+    try:
+        with socket.create_connection((target_ip, port), timeout=timeout):
+            banner = _grab_banner(target_ip, port, timeout)
+            return {
+                "port": port,
+                "name": PORT_NAMES.get(port, "unknown"),
+                "product": banner,
+                "version": None,  # left for the user to confirm manually
+            }
+    except (socket.timeout, ConnectionRefusedError, OSError):
+        return None
+
+
 def scan_host(target_ip, ports=None, timeout=None):
     """
-    Scans a single host across a fixed list of common ports.
+    Scans a single host across a fixed list of common ports, in parallel,
+    so an unreachable host doesn't take (num_ports * timeout) to fail.
     Returns a device dict matching the shape used by demo_data.
     """
     ports = ports or config.SCAN_PORTS
     timeout = timeout or config.SCAN_TIMEOUT
 
     services = []
-    for port in ports:
-        try:
-            with socket.create_connection((target_ip, port), timeout=timeout):
-                banner = _grab_banner(target_ip, port, timeout)
-                services.append({
-                    "port": port,
-                    "name": PORT_NAMES.get(port, "unknown"),
-                    "product": banner,
-                    "version": None,  # left for the user to confirm manually
-                })
-        except (socket.timeout, ConnectionRefusedError, OSError):
-            continue
+    with ThreadPoolExecutor(max_workers=min(len(ports), 20)) as pool:
+        for result in pool.map(lambda p: _scan_port(target_ip, p, timeout), ports):
+            if result:
+                services.append(result)
+
+    services.sort(key=lambda s: s["port"])
 
     try:
         hostname = socket.getfqdn(target_ip)

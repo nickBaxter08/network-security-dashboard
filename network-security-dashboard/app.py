@@ -1,5 +1,8 @@
 from flask import Flask, jsonify, render_template, request
 
+import ipaddress
+import socket
+
 from config import config
 import db
 from scanner.demo_data import get_demo_scan_result
@@ -8,6 +11,28 @@ from security.rules import check_service, score_device, score_label
 
 app = Flask(__name__)
 db.init_db()
+
+
+def _validate_target(target):
+    """
+    Accepts a valid IPv4/IPv6 address or a resolvable hostname.
+    Returns None if valid, or an error message string if not.
+    """
+    if not target or not target.strip():
+        return "Target is required."
+    target = target.strip()
+
+    try:
+        ipaddress.ip_address(target)
+        return None  # valid IP
+    except ValueError:
+        pass
+
+    try:
+        socket.getaddrinfo(target, None)
+        return None  # resolvable hostname
+    except socket.gaierror:
+        return f"'{target}' isn't a valid IP address or a resolvable hostname."
 
 
 def enrich_scan_result(scan_result):
@@ -46,13 +71,23 @@ def api_scan():
     if config.is_local_mode:
         from scanner.network_scan import get_local_scan_result
         target = request.json.get("target") if request.is_json else None
-        if not target:
-            return jsonify({"error": "target IP is required in local mode"}), 400
-        result = get_local_scan_result(target)
+        error = _validate_target(target)
+        if error:
+            return jsonify({"error": error}), 400
+        result = get_local_scan_result(target.strip())
     else:
         result = get_demo_scan_result()
 
     result = enrich_scan_result(result)
+
+    if result["mode"] == "local" and not result["devices"][0]["services"]:
+        result["devices"][0]["unreachable_note"] = (
+            "No open ports found on the common list. The host may be "
+            "reachable but not running any scanned services, or it may "
+            "not be responding at all — double-check the IP and that "
+            "you're on the same network."
+        )
+
     db.save_scan(result)
     return jsonify(result)
 
