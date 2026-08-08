@@ -1,5 +1,9 @@
 # Perimeter — Network Security Dashboard
 
+**Live demo:** https://perimeter-dashboard.onrender.com/ (runs in demo
+mode with sample data — free-tier hosting, so it may take 30–60 seconds
+to wake up on the first request after a period of inactivity)
+
 A web app that scans network devices/services, verifies what's actually
 running behind each open port, matches detected software against known
 CVEs (via the NVD API), flags risky configurations, and rolls it all up
@@ -7,7 +11,7 @@ into a per-device risk score with history over time.
 
 ## Why it's built this way
 
-The app runs in one of two modes, controlled by `APP_MODE`:
+The app runs in one of two modes, controlled at startup by `APP_MODE`:
 
 - **`demo` (default)** — uses realistic sample network data. This is what
   a public/hosted deployment should always run in. It never touches a
@@ -16,6 +20,22 @@ The app runs in one of two modes, controlled by `APP_MODE`:
   is intended to be run on your own machine, against your own network
   only. A publicly hosted server has no legitimate reason to offer
   scanning of arbitrary IPs, so this mode is not exposed on the live demo.
+
+There's also an **in-app toggle** to switch between demo/local without
+restarting the server — but it's disabled by default and gated behind a
+separate setting, `ALLOW_MODE_TOGGLE`. **Never set this to `true` on a
+publicly hosted deployment** — doing so would let any visitor flip a
+public server into scanning an IP of their choosing, which is exactly the
+kind of unauthorized-scanning risk described below. It's meant only for
+your own convenience when running the app locally:
+
+```bash
+ALLOW_MODE_TOGGLE=true python app.py
+```
+
+With that set, a "Switch mode" button appears in the dashboard header.
+Without it (the default, and always the case on the live demo), the app
+stays locked to whatever `APP_MODE` it started with.
 
 **Only ever scan hosts/networks you own or have explicit permission to
 test.** Unauthorized network scanning can violate the law (e.g. the U.S.
@@ -41,6 +61,19 @@ Then open `http://localhost:5000`.
 Optional: set `NVD_API_KEY` (free from the [NVD API](https://nvd.nist.gov/developers/request-an-api-key))
 to raise the CVE lookup rate limit — the app works without one, just slower
 under heavy use.
+
+## Deployment
+
+The live demo runs on [Render](https://render.com)'s free tier via the
+included `Procfile` (`gunicorn app:app`). The only environment variable
+set there is `APP_MODE=demo` — `ALLOW_MODE_TOGGLE` is intentionally left
+unset so the public deployment can never be switched into scanning a real
+network (see above).
+
+To deploy your own copy: connect the repo, set the build command to
+`pip install -r requirements.txt`, the start command to
+`gunicorn app:app --bind 0.0.0.0:$PORT`, and add `APP_MODE=demo` as an
+environment variable.
 
 ## How it works
 
@@ -104,8 +137,9 @@ than guessed at.
 
 ```
 app.py                       Flask app + API routes
-config.py                     Mode toggle, scan settings
+config.py                     Mode settings (APP_MODE, ALLOW_MODE_TOGGLE)
 db.py                          SQLite scan history storage
+Procfile                        Start command for deployment (gunicorn)
 scanner/
   demo_data.py                  Sample data for demo mode
   network_scan.py                 Real TCP scan for local mode (parallelized)
@@ -113,18 +147,14 @@ scanner/
 security/
   cve_lookup.py                     NVD CVE API client
   rules.py                            Config red-flag rules + diminishing-returns scoring
-templates/index.html                  Dashboard page
+templates/index.html                  Dashboard page + mode toggle UI
 static/css/style.css                   Styling
-static/js/dashboard.js                  Frontend scan + render logic
+static/js/dashboard.js                  Frontend scan, render, and mode-switch logic
 ```
 
 ## Roadmap / possible extensions
 
-- Live deployment (demo mode) with a public link
 - ARP-based host discovery for a full subnet (local mode only)
 - Export findings as a PDF report
 - Auth so a hosted version can save per-user scan history
 - Binary-protocol verification for RDP/SMB
-
-## DISCLAIMER
-Anthropic's Claude put all of this code together as you see it, none of this was written by hand
