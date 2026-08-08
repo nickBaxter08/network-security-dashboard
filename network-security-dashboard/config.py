@@ -14,7 +14,15 @@ class Config:
     publicly hosted server.
     """
 
-    APP_MODE = os.environ.get("APP_MODE", "demo").lower()  # "demo" or "local"
+    APP_MODE = os.environ.get("APP_MODE", "demo").lower()  # "demo" or "local", the startup default
+
+    # Whether the in-app toggle (switching between demo/local at runtime,
+    # without restarting the server) is allowed at all. OFF by default and
+    # must be explicitly enabled — this should NEVER be set to true on a
+    # publicly hosted deployment, since it would let any visitor flip a
+    # public server into scanning an IP of their choosing. Safe to enable
+    # only when running on your own machine for your own use.
+    ALLOW_MODE_TOGGLE = os.environ.get("ALLOW_MODE_TOGGLE", "false").lower() == "true"
 
     NVD_API_BASE = "https://services.nvd.nist.gov/rest/json/cves/2.0"
     NVD_API_KEY = os.environ.get("NVD_API_KEY")  # optional, raises rate limit

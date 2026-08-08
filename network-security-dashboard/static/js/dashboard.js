@@ -7,6 +7,60 @@ const gaugeScore = document.getElementById('gauge-score');
 
 const historyList = document.getElementById('history-list');
 
+const modeBadge = document.getElementById('mode-badge');
+const modeToggleBtn = document.getElementById('mode-toggle-btn');
+const scanSubtext = document.getElementById('scan-subtext');
+const targetInputWrap = document.getElementById('target-input-wrap');
+
+const LOCAL_SUBTEXT = 'Enter a host on your own network to scan. Only scan devices you own or have explicit permission to test.';
+const DEMO_SUBTEXT = 'Running on sample data — this deployment never scans a real network. Run locally to scan your own LAN.';
+
+function applyMode(mode) {
+  modeBadge.textContent = `${mode} mode`;
+  modeBadge.className = `mode-badge mode-${mode}`;
+
+  const isLocal = mode === 'local';
+  targetInputWrap.classList.toggle('hidden', !isLocal);
+  document.getElementById('target-input').required = isLocal;
+  scanSubtext.textContent = isLocal ? LOCAL_SUBTEXT : DEMO_SUBTEXT;
+  modeToggleBtn.textContent = isLocal ? 'Switch to demo' : 'Switch to local';
+}
+
+async function initMode() {
+  try {
+    const res = await fetch('/api/mode');
+    const data = await res.json();
+    applyMode(data.mode);
+    modeToggleBtn.classList.toggle('hidden', !data.toggle_allowed);
+  } catch {
+    // leave server-rendered initial state as-is if this fails
+  }
+}
+
+modeToggleBtn.addEventListener('click', async () => {
+  const nextMode = modeBadge.textContent.startsWith('local') ? 'demo' : 'local';
+  modeToggleBtn.disabled = true;
+  try {
+    const res = await fetch('/api/mode', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: nextMode }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Could not switch mode');
+    applyMode(data.mode);
+    resultsList.innerHTML = '<p class="empty-state">Run a scan to see devices, services, and flagged issues here.</p>';
+    scanMeta.textContent = 'No scan run yet';
+    updateGauge(0);
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    modeToggleBtn.disabled = false;
+  }
+});
+
+initMode();
+
 const GAUGE_CIRCUMFERENCE = 251;
 
 const RISK_COLOR = {

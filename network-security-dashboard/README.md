@@ -7,7 +7,7 @@ into a per-device risk score with history over time.
 
 ## Why it's built this way
 
-The app runs in one of two modes, controlled by `APP_MODE`:
+The app runs in one of two modes, controlled at startup by `APP_MODE`:
 
 - **`demo` (default)** — uses realistic sample network data. This is what
   a public/hosted deployment should always run in. It never touches a
@@ -16,6 +16,22 @@ The app runs in one of two modes, controlled by `APP_MODE`:
   is intended to be run on your own machine, against your own network
   only. A publicly hosted server has no legitimate reason to offer
   scanning of arbitrary IPs, so this mode is not exposed on the live demo.
+
+There's also an **in-app toggle** to switch between demo/local without
+restarting the server — but it's disabled by default and gated behind a
+separate setting, `ALLOW_MODE_TOGGLE`. **Never set this to `true` on a
+publicly hosted deployment** — doing so would let any visitor flip a
+public server into scanning an IP of their choosing, which is exactly the
+kind of unauthorized-scanning risk described below. It's meant only for
+your own convenience when running the app locally:
+
+```bash
+ALLOW_MODE_TOGGLE=true python app.py
+```
+
+With that set, a "Switch mode" button appears in the dashboard header.
+Without it (the default, and always the case on the live demo), the app
+stays locked to whatever `APP_MODE` it started with.
 
 **Only ever scan hosts/networks you own or have explicit permission to
 test.** Unauthorized network scanning can violate the law (e.g. the U.S.

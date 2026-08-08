@@ -16,25 +16,28 @@
       <span class="brand-mark" aria-hidden="true"></span>
       <span class="brand-name">Perimeter</span>
     </div>
-    <div class="mode-badge mode-{{ mode }}" id="mode-badge">{{ mode }} mode</div>
+    <div class="mode-controls">
+      <button type="button" id="mode-toggle-btn" class="mode-toggle-btn hidden">Switch mode</button>
+      <div class="mode-badge mode-{{ mode }}" id="mode-badge">{{ mode }} mode</div>
+    </div>
   </header>
 
   <main class="layout">
 
     <section class="scan-panel">
       <h1>Scan your network</h1>
-      <p class="subtext">
+      <p class="subtext" id="scan-subtext">
         {% if mode == 'local' %}
           Enter a host on your own network to scan. Only scan devices you own or have explicit permission to test.
         {% else %}
-          Running on sample data — this public demo never scans a real network. Run locally to scan your own LAN.
+          Running on sample data — this deployment never scans a real network. Run locally to scan your own LAN.
         {% endif %}
       </p>
 
       <form id="scan-form">
-        {% if mode == 'local' %}
-        <input type="text" id="target-input" placeholder="e.g. 192.168.1.14" required>
-        {% endif %}
+        <div id="target-input-wrap" class="{{ 'hidden' if mode != 'local' }}">
+          <input type="text" id="target-input" placeholder="e.g. 192.168.1.14" {{ 'required' if mode == 'local' }}>
+        </div>
         <button type="submit" id="scan-btn">Run scan</button>
       </form>
 

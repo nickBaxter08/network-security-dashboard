@@ -12,6 +12,14 @@ from security.rules import check_service, score_device, score_label
 app = Flask(__name__)
 db.init_db()
 
+# Runtime-switchable mode. Starts at the configured startup default; can
+# only be changed via /api/mode if config.ALLOW_MODE_TOGGLE is true.
+current_mode = config.APP_MODE
+
+
+def is_local_mode():
+    return current_mode == "local"
+
 
 def _validate_target(target):
     """
@@ -63,12 +71,12 @@ def enrich_scan_result(scan_result):
 
 @app.route("/")
 def index():
-    return render_template("index.html", mode=config.APP_MODE)
+    return render_template("index.html", mode=current_mode)
 
 
 @app.route("/api/scan", methods=["POST"])
 def api_scan():
-    if config.is_local_mode:
+    if is_local_mode():
         from scanner.network_scan import get_local_scan_result
         target = request.json.get("target") if request.is_json else None
         error = _validate_target(target)
@@ -106,9 +114,31 @@ def api_history_detail(scan_id):
     return jsonify(detail)
 
 
-@app.route("/api/mode")
+@app.route("/api/mode", methods=["GET"])
 def api_mode():
-    return jsonify({"mode": config.APP_MODE})
+    return jsonify({
+        "mode": current_mode,
+        "toggle_allowed": config.ALLOW_MODE_TOGGLE,
+    })
+
+
+@app.route("/api/mode", methods=["POST"])
+def api_set_mode():
+    global current_mode
+
+    if not config.ALLOW_MODE_TOGGLE:
+        return jsonify({
+            "error": "Mode switching is disabled on this deployment. "
+                     "Local scanning is only available when explicitly "
+                     "enabled by whoever is running this instance."
+        }), 403
+
+    requested = (request.get_json(silent=True) or {}).get("mode")
+    if requested not in ("demo", "local"):
+        return jsonify({"error": "mode must be 'demo' or 'local'"}), 400
+
+    current_mode = requested
+    return jsonify({"mode": current_mode})
 
 
 if __name__ == "__main__":
